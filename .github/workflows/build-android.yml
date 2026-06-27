@@ -1,0 +1,56 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install client dependencies
+      run: npm ci
+      working-directory: client
+
+    - name: Build client
+      run: npm run build
+      working-directory: client
+
+    - name: Sync Capacitor Android
+      run: npx cap sync android
+      working-directory: client
+
+    - name: Make Gradlew executable
+      run: chmod +x client/android/gradlew
+
+    - name: Build APK
+      run: ./gradlew assembleDebug
+      working-directory: client/android
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: daily-journal-apk
+        path: client/android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
