@@ -37,6 +37,13 @@ jobs:
       run: npm run build
       working-directory: client
 
+    - name: Remove existing android folder
+      run: rm -rf client/android
+
+    - name: Add Capacitor Android
+      run: npx cap add android
+      working-directory: client
+
     - name: Sync Capacitor Android
       run: npx cap sync android
       working-directory: client
