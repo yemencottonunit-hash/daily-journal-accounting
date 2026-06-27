@@ -41,11 +41,11 @@ jobs:
       run: rm -rf client/android
 
     - name: Add Capacitor Android
-      run: npx cap add android --no-interaction
+      run: npx cap add android
       working-directory: client
 
     - name: Sync Capacitor Android
-      run: npx cap sync android --no-interaction
+      run: npx cap sync android
       working-directory: client
 
     - name: Build APK Debug
