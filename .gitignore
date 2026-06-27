@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Android build
+client/android/app/build/
+client/android/.gradle/
+client/android/build/
+
+# Database (يحتوي على بيانات حساسة - لا ترفعه)
+server/data/*.db
+
+# Uploads
+server/src/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+
+# Temp files
+*.tmp
+*.temp

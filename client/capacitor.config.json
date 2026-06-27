@@ -1,0 +1,12 @@
+{
+  "appId": "com.loui.dailyjournal",
+  "appName": "القيود اليومية",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": ["localhost", "192.168.*"]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
