@@ -8,8 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      CI: true
 
     steps:
     - name: Checkout code
@@ -22,7 +20,7 @@ jobs:
         cache: 'npm'
         cache-dependency-path: client/package-lock.json
 
-    - name: Setup Java JDK
+    - name: Setup Java JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
@@ -31,8 +29,11 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
+    - name: Accept Android SDK licenses
+      run: yes | sdkmanager --licenses || true
+
     - name: Install Android SDK platforms
-      run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
     - name: Install client dependencies
       run: npm ci
@@ -42,25 +43,118 @@ jobs:
       run: npm run build
       working-directory: client
 
-    - name: Remove old android folder
-      run: Remove-Item -Recurse -Force client/android -ErrorAction SilentlyContinue
-      shell: pwsh
-
-    - name: Add Capacitor Android
-      run: npx cap add android
+    - name: Create Android project
       working-directory: client
+      run: |
+        mkdir -p android-app/app/src/main/java/com/loui/dailyjournal
+        mkdir -p android-app/app/src/main/res/values
+        mkdir -p android-app/app/src/main/assets
+        cp -r dist/* android-app/app/src/main/assets/
 
-    - name: Sync Capacitor Android
-      run: npx cap sync android
+    - name: Write Android files
       working-directory: client
+      run: |
+        # AndroidManifest.xml
+        cat > android-app/app/src/main/AndroidManifest.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <application android:allowBackup="true" android:label="Daily Journal" android:theme="@style/AppTheme" android:usesCleartextTraffic="true">
+                <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN"/>
+                        <category android:name="android.intent.category.LAUNCHER"/>
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
 
-    - name: Build APK Debug
-      run: ./gradlew assembleDebug
-      working-directory: client/android
+        # MainActivity.java
+        cat > android-app/app/src/main/java/com/loui/dailyjournal/MainActivity.java << 'EOF'
+        package com.loui.dailyjournal;
+        import android.os.Bundle;
+        import android.webkit.*;
+        import androidx.appcompat.app.AppCompatActivity;
+        public class MainActivity extends AppCompatActivity {
+            private WebView webView;
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                webView = new WebView(this);
+                setContentView(webView);
+                WebSettings s = webView.getSettings();
+                s.setJavaScriptEnabled(true);
+                s.setDomStorageEnabled(true);
+                s.setAllowFileAccess(true);
+                s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+                webView.setWebViewClient(new WebViewClient());
+                webView.setWebChromeClient(new WebChromeClient());
+                webView.loadUrl("file:///android_asset/index.html");
+            }
+            @Override public void onBackPressed() {
+                if (webView.canGoBack()) webView.goBack(); else super.onBackPressed();
+            }
+        }
+        EOF
+
+        # styles.xml
+        cat > android-app/app/src/main/res/values/styles.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <resources>
+            <style name="AppTheme" parent="Theme.AppCompat.NoActionBar"/>
+        </resources>
+        EOF
+
+        # app/build.gradle
+        cat > android-app/app/build.gradle << 'EOF'
+        apply plugin: 'com.android.application'
+        android {
+            namespace "com.loui.dailyjournal"
+            compileSdk 35
+            defaultConfig {
+                applicationId "com.loui.dailyjournal"
+                minSdk 24
+                targetSdk 35
+                versionCode 1
+                versionName "1.0"
+            }
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+            }
+        }
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'androidx.core:core:1.12.0'
+        }
+        EOF
+
+        # root build.gradle
+        cat > android-app/build.gradle << 'EOF'
+        buildscript {
+            repositories { google(); mavenCentral() }
+            dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+        }
+        allprojects {
+            repositories { google(); mavenCentral() }
+        }
+        EOF
+
+        echo "include ':app'" > android-app/settings.gradle
+        echo "android.useAndroidX=true" > android-app/gradle.properties
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Build APK
+      run: gradle assembleDebug --no-daemon
+      working-directory: client/android-app
 
     - name: Upload APK artifact
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: daily-journal-apk
-        path: client/android/app/build/outputs/apk/debug/app-debug.apk
+        path: client/android-app/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 30
