@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">القيود اليومية</string>
+    <string name="title_activity_main">القيود اليومية</string>
+    <string name="package_name">com.loui.dailyjournal</string>
+    <string name="custom_url_scheme">com.loui.dailyjournal</string>
+</resources>
