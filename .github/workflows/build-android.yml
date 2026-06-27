@@ -16,7 +16,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
         cache: 'npm'
         cache-dependency-path: client/package-lock.json
 
@@ -41,18 +41,15 @@ jobs:
       run: rm -rf client/android
 
     - name: Add Capacitor Android
-      run: npx cap add android
+      run: npx cap add android --no-interaction
       working-directory: client
 
     - name: Sync Capacitor Android
-      run: npx cap sync android
+      run: npx cap sync android --no-interaction
       working-directory: client
 
-    - name: Make Gradlew executable
-      run: chmod +x client/android/gradlew
-
-    - name: Build APK
-      run: ./gradlew assembleDebug
+    - name: Build APK Debug
+      run: chmod +x gradlew && ./gradlew assembleDebug
       working-directory: client/android
 
     - name: Upload APK artifact
