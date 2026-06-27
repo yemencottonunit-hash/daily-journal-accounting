@@ -42,7 +42,7 @@ jobs:
       working-directory: client
 
     - name: Build APK Debug
-      run: chmod +x gradlew && ./gradlew assembleDebug
+      run: chmod +x gradlew && ./gradlew assembleDebug --stacktrace --no-daemon
       working-directory: client/android
 
     - name: Upload APK artifact
